@@ -1,0 +1,78 @@
+﻿@page "/"
+@inject HttpClient httpClient
+@using Pokedex.Models
+@using Newtonsoft.Json
+
+<div class="row">
+    <div class="col mx-auto justify-content-between">
+        <form class="form-inline" @onsubmit="GetPokemonAsync">
+            <div class="form-group mb-2">
+                <input type="text" @bind-value="@searchText" class="form-control" placeholder="Search Pokemon.">
+            </div>
+            <button type="submit" class="btn btn-primary mb-2 ml-auto">Find</button>
+        </form>
+    </div>
+</div>
+
+@if (IsLoading)
+{
+    <h1 class="text-center">Loading...</h1>
+}
+else
+{
+    if (Pokemon == null)
+    {
+        <h1 class="text-center">No Pokemon to display</h1>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col mx-auto justify-content-between">
+
+                <div class="card">
+                    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/@(Pokemon.Id).png" class="card-img-top img-fluid" alt="@Pokemon.Name">
+                    <div class="card-body">
+                        <h3 class="card-title">@Pokemon.Name.ToUpper()</h3>
+                        <h6>Height: @Pokemon.Height</h6>
+                        <h6>Weight: @Pokemon.Weight</h6>
+                        <h6>XP: @Pokemon.Experience</h6>
+                    </div>
+                </div>
+                <form class="form-inline">
+                    <button type="button" class="btn btn-primary mb-2" @onclick="@(() => ChangePokemonAsync(-1))">Prev</button>
+                    <button type="button" class="btn btn-primary mb-2 ml-auto" @onclick="@(() => ChangePokemonAsync(1))">Next</button>
+                </form>
+            </div>
+        </div>
+    }
+
+}
+
+@code {
+    public Pokemon Pokemon {get; set;}
+    public string searchText;
+    public bool IsLoading {get; set;}
+
+    protected async Task GetPokemonAsync()
+    {
+        IsLoading = true; 
+        Pokemon = await GetPokemon(searchText);
+        IsLoading = false;
+    }
+
+    protected async Task ChangePokemonAsync(int i)
+    {
+        Pokemon = await GetPokemon((Pokemon.Id += i).ToString());
+    }
+
+    public async Task<Pokemon> GetPokemon(string name)
+    {
+        var result = JsonConvert.DeserializeObject<Pokemon>(await httpClient.GetStringAsync($"https://pokeapi.co/api/v2/pokemon/{name}"));
+        
+        if (result.Name.Length == 0)
+        {
+            return null;
+        }
+        return result;
+    }
+}
